@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Happy Birthday Website</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <style>
+    /* Custom styles for book, memories, and cake effects */
+    .book {
+      perspective: 1000px;
+    }
+    .book-page {
+      transform-origin: left;
+      backface-visibility: hidden;
+    }
+    .book-container {
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    }
+    .memory-item {
+      opacity: 0;
+      transform: translateY(50px);
+    }
+    .memory-video {
+      width: 200px;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      transition: transform 0.3s ease;
+    }
+    .memory-video:hover {
+      transform: scale(1.05);
+    }
+    .memory-note {
+      background: #fff;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      max-width: 300px;
+      position: relative;
+    }
+    .memory-note::before {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-style: solid;
+    }
+    .memory-note.left::before {
+      right: -15px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 15px 0 15px 15px;
+      border-color: transparent transparent transparent #fff;
+    }
+    .memory-note.right::before {
+      left: -15px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 15px 15px 15px 0;
+      border-color: transparent #fff transparent transparent;
+    }
+    .candle-flame {
+      animation: flicker 0.2s infinite alternate;
+    }
+    @keyframes flicker {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(1.2); opacity: 1; }
+    }
+    #book-cover {
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .book-cover-back {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      transform: rotateY(180deg);
+      background-color: #831843;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+    }
+    .scatter-image {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      object-fit: cover;
+      z-index: 5;
+      opacity: 0;
+    }
+    .balloon {
+      position: absolute;
+      width: 30px;
+      height: 40px;
+      border-radius: 50% 50% 40% 40%;
+      background-color: #ff0000;
+      opacity: 0;
+      z-index: 5; /* Below book-container (z-10) */
+    }
+    .balloon::after {
+      content: '';
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 20px;
+      background-color: #666;
+    }
+
+    #right-page {
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #d1d5db transparent;
+    }
+    #right-page::-webkit-scrollbar {
+      width: 6px;
+    }
+    #right-page::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #right-page::-webkit-scrollbar-thumb {
+      background-color: #d1d5db;
+      border-radius: 3px;
+    }
+
+    @media (min-width: 640px) {
+      .scatter-image {
+        width: 120px;
+        height: 120px;
+      }
+      .memory-video {
+        width: 250px;
+        height: 250px;
+      }
+      .memory-note {
+        max-width: 350px;
+      }
+      .balloon {
+        width: 50px;
+        height: 70px;
+      }
+      .balloon::after {
+        bottom: -30px;
+        height: 30px;
+      }
+    }
+    /* Cake layer styles */
+    .cake-layer {
+      border-radius: 20px;
+      position: relative;
+      margin: 0 auto;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    #layer1 {
+      width: 75vw;
+      max-width: 300px;
+      height: 60px;
+    }
+    #layer2 {
+      width: 65vw;
+      max-width: 250px;
+      height: 60px;
+    }
+    #layer3 {
+      width: 55vw;
+      max-width: 200px;
+      height: 60px;
+    }
+    @media (min-width: 640px) {
+      #layer1 { height: 80px; }
+      #layer2 { height: 80px; }
+      #layer3 { height: 80px; }
+    }
+    #candle-container {
+      position: absolute;
+      top: -3rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4rem;
+      height: 5rem;
+    }
+    @media (min-width: 640px) {
+      #candle-container {
+        top: -4rem;
+      }
+    }
+    #candle {
+      opacity: 0;
+      transform: translateY(20px);
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    #candle-stick {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      transform-origin: bottom center;
+      width: 1rem;
+      height: 3rem;
+      background-color: #fff;
+      border-top-left-radius: 0.25rem;
+      border-top-right-radius: 0.25rem;
+    }
+    #candle-flame {
+      position: absolute;
+      top: 0;
+      left: 40%;
+      transform: translateX(-50%);
+      width: 1rem;
+      height: 1.5rem;
+    }
+    #confetti-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    /* Video popup styles */
+    .video-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .video-popup.show {
+      display: flex;
+      opacity: 1;
+    }
+    .video-container {
+      position: relative;
+      max-width: 90%;
+      max-height: 90%;
+      background: #fff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      transform: scale(0.8);
+      transition: transform 0.3s ease;
+    }
+    .video-popup.show .video-container {
+      transform: scale(1);
+    }
+    .video-container video {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .close-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s ease;
+      z-index: 1001;
+    }
+    .close-btn:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+    .video-message {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+      color: white;
+      padding: 40px 20px 20px;
+      text-align: center;
+    }
+    .video-message h3 {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .video-message p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body class="bg-pink-100 font-sans">
+  <!-- Video Popup -->
+  <div class="video-popup" id="video-popup">
+    <div class="video-container">
+      <button class="close-btn" id="close-video">×</button>
+      <video id="birthday-video" controls autoplay>
+        <source src="vids/copy_9E7BA825-F474-4E1A-9CBD-7D7681043F2D.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <div class="video-message">
+        <h3>Happy Birthday!</h3>
+        <p>Hope your special day is filled with joy, love, and wonderful surprises! 🎉</p>
+      </div>
+    </div>
+  </div>
+
+    <!-- Book Section -->
+  <section id="book-section" class="min-h-screen flex items-center justify-center bg-gradient-to-b from-pink-200 to-purple-200 relative">
+    <div class="book-container relative w-full max-w-md sm:max-w-lg md:max-w-4xl h-96 sm:h-[448px] md:h-[560px] flex z-10">
+      <!-- Left Page (Image) -->
+      <div id="left-page" class="w-1/2 h-full bg-white border-r-4 border-gray-300 flex items-center justify-center z-10">
+        <img src="images/ourpics/IMG_9843.jpg" alt="Birthday Photo" class="w-4/5 h-auto max-h-[80%]">
+      </div>
+      <!-- Right Page (Letter) -->
+      <div id="right-page" class="w-1/2 h-full bg-white flex items-start justify-center pt-8 sm:pt-10 md:pt-12 px-6 sm:px-8 md:px-10 z-10">
+        <div class="text-gray-800 text-base sm:text-lg flex flex-col items-start w-full">
+          <h2 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Happy Birthday!</h2>
+          <p class="mt-2 sm:mt-4">Happy Birthday, Roxane!</p>
+          <p class="mt-2 sm:mt-4">You know I’m not really an expert when it comes to cheesy letters, but here I am, making this website for your birthday—because you are truly special to me. You've been there for me through all the ups and downs, through my highs and lows, and I’ve been there for yours too. No matter the distance, the silence, or the changes life throws at us, somehow, we always find our way back to each other—and that says a lot.</p>
+          <p class="mt-2 sm:mt-4">We've known each other for quite some time now—since Grade 7, I suppose. We’ve shared so many memories together, moments I will never forget. We’ve laughed until our stomachs hurt, cried on each other’s shoulders, and shared secrets that no one else will ever know. You know the parts of me that I don’t show the world, and still, you chose to stay—and I’ve done the same for you.</p>
+          <p class="mt-2 sm:mt-4">You may look at yourself as just a naive girl, but I see so much more. I see a strong, kind-hearted woman who keeps giving even when the world doesn't always give back. You carry so much, yet you keep going. I’ve seen you at your lowest and still pushing through. And that... that strength, that fire in you—that’s something I admire deeply. You're not just strong; you're inspiring.</p>
+          <p class="mt-2 sm:mt-4">You are the kind of person who brings light into people’s lives without even trying. You care so much, you love so deeply, and you give so freely. And sometimes, you don’t even realize the impact you make. But I do. I see it every time you comfort a friend, every time you smile through the pain, and every time you choose to keep going even when life gets tough.</p>
+          <p class="mt-2 sm:mt-4">You’re not the same Roxane I knew in Grade 7. You’ve grown into someone so much stronger, bolder, wiser, and more capable than you give yourself credit for. And I’m just really proud of the person you’ve become—and the person you're still becoming.</p>
+          <p class="mt-2 sm:mt-4">On your special day, I just want to say: thank you. Thank you for being you. Thank you for being part of my life. Thank you for staying.</p>
+          <p class="mt-2 sm:mt-4">I hope this birthday brings you the happiness you deserve, the peace you've been searching for, and the love you so freely give to others.</p>
+          <p class="mt-2 sm:mt-4">Happy Birthday, Roxane. You’re one of a kind.</p>
+          <p class="mt-4 mb-3 sm:mt-6 mb-3">With all my love,<br><strong>JC Gwapo</strong></p>
+        </div>
+      </div>
+      <!-- Book Cover -->
+      <div id="book-cover" class="book-page absolute inset-0 bg-pink-800 text-white flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-bold z-20">
+        Happy Birthday!
+        <!-- Back of Book Cover with Images -->
+        <div class="book-cover-back">
+          <img src="images/icons/48b6000f-66b8-43ff-975d-890878db487c-removebg-preview.png" alt="Back Image 1" class="scatter-image" data-scatter>
+          <img src="images/icons/_red_valentine_bear___Sticker_for_Sale_by_-removebg-preview.png" alt="Back Image 2" class="scatter-image" data-scatter>
+          <img src="images/icons/5a595b65-a254-42fa-abfb-ba32eec5ef1f-removebg-preview.png" alt="Back Image 3" class="scatter-image" data-scatter>
+          <img src="images/icons/55a35dff-6cc6-4753-8c9f-1f32c2eb0d8e-removebg-preview.png" alt="Back Image 4" class="scatter-image" data-scatter>
+          <img src="images/icons/d08eedd2-1039-437f-a64b-03164d6ff455-removebg-preview.png" alt="Back Image 5" class="scatter-image" data-scatter>
+          <img src="images/icons/d301761e-33d6-4883-9385-bfa9348c3b0a-removebg-preview.png" alt="Back Image 6" class="scatter-image" data-scatter>
+          <img src="images/icons/Get_my_art_printed_on_awesome_products__Support_me_-removebg-preview (1).png" alt="Back Image 7" class="scatter-image" data-scatter>
+          <img src="images/icons/Get_my_art_printed_on_awesome_products__Support_me_-removebg-preview.png" alt="Back Image 8" class="scatter-image" data-scatter>
+          <img src="images/icons/Plain_Red_Color_Star_Sticker_-_simple_gifts_custom_-removebg-preview.png" alt="Back Image 9" class="scatter-image" data-scatter>
+          <img src="images/icons/PRICES_MAY_VARY__Material_high-quality_alloy_-removebg-preview.png" alt="Back Image 10" class="scatter-image" data-scatter>
+          <img src="images/icons/반짝_반짝반짝_빛나는_별_빛나는_불꽃_노란색_반짝이_가벼운_별_스파클_.png" alt="Back Image 11" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_1315.jpg" alt="Back Image 12" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3231.jpg" alt="Back Image 13" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3276.jpg" alt="Back Image 14" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3282.jpg" alt="Back Image 15" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3448.jpg" alt="Back Image 16" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3802.jpg" alt="Back Image 17" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_4676.jpg" alt="Back Image 18" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_9662.jpg" alt="Back Image 19" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_9843.jpg" alt="Back Image 20" class="scatter-image" data-scatter>
+          <img src="images/icons/48b6000f-66b8-43ff-975d-890878db487c-removebg-preview.png" alt="Back Image 1" class="scatter-image" data-scatter>
+          <img src="images/icons/_red_valentine_bear___Sticker_for_Sale_by_-removebg-preview.png" alt="Back Image 2" class="scatter-image" data-scatter>
+          <img src="images/icons/5a595b65-a254-42fa-abfb-ba32eec5ef1f-removebg-preview.png" alt="Back Image 3" class="scatter-image" data-scatter>
+          <img src="images/icons/55a35dff-6cc6-4753-8c9f-1f32c2eb0d8e-removebg-preview.png" alt="Back Image 4" class="scatter-image" data-scatter>
+          <img src="images/icons/d08eedd2-1039-437f-a64b-03164d6ff455-removebg-preview.png" alt="Back Image 5" class="scatter-image" data-scatter>
+          <img src="images/icons/d301761e-33d6-4883-9385-bfa9348c3b0a-removebg-preview.png" alt="Back Image 6" class="scatter-image" data-scatter>
+          <img src="images/icons/Get_my_art_printed_on_awesome_products__Support_me_-removebg-preview (1).png" alt="Back Image 7" class="scatter-image" data-scatter>
+          <img src="images/icons/Get_my_art_printed_on_awesome_products__Support_me_-removebg-preview.png" alt="Back Image 8" class="scatter-image" data-scatter>
+          <img src="images/icons/Plain_Red_Color_Star_Sticker_-_simple_gifts_custom_-removebg-preview.png" alt="Back Image 9" class="scatter-image" data-scatter>
+          <img src="images/icons/PRICES_MAY_VARY__Material_high-quality_alloy_-removebg-preview.png" alt="Back Image 10" class="scatter-image" data-scatter>
+          <img src="images/icons/반짝_반짝반짝_빛나는_별_빛나는_불꽃_노란색_반짝이_가벼운_별_스파클_.png" alt="Back Image 11" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_1315.jpg" alt="Back Image 12" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3231.jpg" alt="Back Image 13" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3276.jpg" alt="Back Image 14" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3282.jpg" alt="Back Image 15" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3448.jpg" alt="Back Image 16" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3802.jpg" alt="Back Image 17" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_4676.jpg" alt="Back Image 18" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_9662.jpg" alt="Back Image 19" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_9843.jpg" alt="Back Image 20" class="scatter-image" data-scatter>
+          <img src="images/icons/48b6000f-66b8-43ff-975d-890878db487c-removebg-preview.png" alt="Back Image 1" class="scatter-image" data-scatter>
+          <img src="images/icons/_red_valentine_bear___Sticker_for_Sale_by_-removebg-preview.png" alt="Back Image 2" class="scatter-image" data-scatter>
+          <img src="images/icons/5a595b65-a254-42fa-abfb-ba32eec5ef1f-removebg-preview.png" alt="Back Image 3" class="scatter-image" data-scatter>
+          <img src="images/icons/55a35dff-6cc6-4753-8c9f-1f32c2eb0d8e-removebg-preview.png" alt="Back Image 4" class="scatter-image" data-scatter>
+          <img src="images/icons/d08eedd2-1039-437f-a64b-03164d6ff455-removebg-preview.png" alt="Back Image 5" class="scatter-image" data-scatter>
+          <img src="images/icons/d301761e-33d6-4883-9385-bfa9348c3b0a-removebg-preview.png" alt="Back Image 6" class="scatter-image" data-scatter>
+          <img src="images/icons/Get_my_art_printed_on_awesome_products__Support_me_-removebg-preview (1).png" alt="Back Image 7" class="scatter-image" data-scatter>
+          <img src="images/icons/Get_my_art_printed_on_awesome_products__Support_me_-removebg-preview.png" alt="Back Image 8" class="scatter-image" data-scatter>
+          <img src="images/icons/Plain_Red_Color_Star_Sticker_-_simple_gifts_custom_-removebg-preview.png" alt="Back Image 9" class="scatter-image" data-scatter>
+          <img src="images/icons/PRICES_MAY_VARY__Material_high-quality_alloy_-removebg-preview.png" alt="Back Image 10" class="scatter-image" data-scatter>
+          <img src="images/icons/반짝_반짝반짝_빛나는_별_빛나는_불꽃_노란색_반짝이_가벼운_별_스파클_.png" alt="Back Image 11" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_1315.jpg" alt="Back Image 12" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3231.jpg" alt="Back Image 13" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3276.jpg" alt="Back Image 14" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3282.jpg" alt="Back Image 15" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3448.jpg" alt="Back Image 16" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3802.jpg" alt="Back Image 17" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_4676.jpg" alt="Back Image 18" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_9662.jpg" alt="Back Image 19" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_9843.jpg" alt="Back Image 20" class="scatter-image" data-scatter>
+          <img src="images/icons/48b6000f-66b8-43ff-975d-890878db487c-removebg-preview.png" alt="Back Image 1" class="scatter-image" data-scatter>
+          <img src="images/icons/_red_valentine_bear___Sticker_for_Sale_by_-removebg-preview.png" alt="Back Image 2" class="scatter-image" data-scatter>
+          <img src="images/icons/5a595b65-a254-42fa-abfb-ba32eec5ef1f-removebg-preview.png" alt="Back Image 3" class="scatter-image" data-scatter>
+          <img src="images/icons/55a35dff-6cc6-4753-8c9f-1f32c2eb0d8e-removebg-preview.png" alt="Back Image 4" class="scatter-image" data-scatter>
+          <img src="images/icons/d08eedd2-1039-437f-a64b-03164d6ff455-removebg-preview.png" alt="Back Image 5" class="scatter-image" data-scatter>
+          <img src="images/icons/d301761e-33d6-4883-9385-bfa9348c3b0a-removebg-preview.png" alt="Back Image 6" class="scatter-image" data-scatter>
+          <img src="images/icons/Get_my_art_printed_on_awesome_products__Support_me_-removebg-preview (1).png" alt="Back Image 7" class="scatter-image" data-scatter>
+          <img src="images/icons/Get_my_art_printed_on_awesome_products__Support_me_-removebg-preview.png" alt="Back Image 8" class="scatter-image" data-scatter>
+          <img src="images/icons/Plain_Red_Color_Star_Sticker_-_simple_gifts_custom_-removebg-preview.png" alt="Back Image 9" class="scatter-image" data-scatter>
+          <img src="images/icons/PRICES_MAY_VARY__Material_high-quality_alloy_-removebg-preview.png" alt="Back Image 10" class="scatter-image" data-scatter>
+          <img src="images/icons/반짝_반짝반짝_빛나는_별_빛나는_불꽃_노란색_반짝이_가벼운_별_스파클_.png" alt="Back Image 11" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_1315.jpg" alt="Back Image 12" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3231.jpg" alt="Back Image 13" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3276.jpg" alt="Back Image 14" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3282.jpg" alt="Back Image 15" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3448.jpg" alt="Back Image 16" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_3802.jpg" alt="Back Image 17" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_4676.jpg" alt="Back Image 18" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_9662.jpg" alt="Back Image 19" class="scatter-image" data-scatter>
+          <img src="images/ourpics/IMG_9843.jpg" alt="Back Image 20" class="scatter-image" data-scatter>
+        </div>
+      </div>
+    </div>
+    <!-- Balloons -->
+    <div class="balloon" style="background-color: #ff0000; left: 10%; bottom: 10%;"></div>
+    <div class="balloon" style="background-color: #00ff00; left: 15%; bottom: 15%;"></div>
+    <div class="balloon" style="background-color: #0000ff; left: 20%; bottom: 20%;"></div>
+    <div class="balloon" style="background-color: #ffff00; right: 20%; bottom: 20%;"></div>
+    <div class="balloon" style="background-color: #ff00ff; right: 15%; bottom: 15%;"></div>
+    <div class="balloon" style="background-color: #00ffff; right: 10%; bottom: 10%;"></div>
+    <div class="balloon" style="background-color: #ff8000; left: 25%; bottom: 25%;" data-desktop-only></div>
+    <div class="balloon" style="background-color: #8000ff; left: 30%; bottom: 30%;" data-desktop-only></div>
+    <div class="balloon" style="background-color: #0080ff; right: 25%; bottom: 25%;" data-desktop-only></div>
+    <div class="balloon" style="background-color: #ff0080; right: 30%; bottom: 30%;" data-desktop-only></div>
+  </section>
+
+  <section id="memories-section" class="bg-gradient-to-b from-purple-200 to-blue-200 py-16">
+  <h2 class="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-12">Memories</h2>
+  <div class="max-w-6xl mx-auto px-4 space-y-16">
+
+    <!-- Memory 1 -->
+    <div class="memory-item flex flex-col md:flex-row items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/0321.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note left">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Masasarap na Balut</h3>
+        <p class="text-gray-600">Fit check mga balut [ems masarap]</p>
+      </div>
+    </div>
+
+    <!-- Memory 2 -->
+    <div class="memory-item flex flex-col md:flex-row-reverse items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/d18e0bd396684eada67b68a776cdf98f.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note right">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">The Wedding Singer</h3>
+        <p class="text-gray-600">Nihilak ang giatay AHAHHAHAHAHAHAHAHA</p>
+      </div>
+    </div>
+
+    <!-- Memory 3 -->
+    <div class="memory-item flex flex-col md:flex-row items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/IMG_0520.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note left">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Sizzlers</h3>
+        <p class="text-gray-600">Hadlokan ang piste HAHAHAHAHAHAHA</p>
+      </div>
+    </div>
+
+    <!-- Memory 4 -->
+    <div class="memory-item flex flex-col md:flex-row-reverse items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/IMG_1186.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note right">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Past Birthday</h3>
+        <p class="text-gray-600">Masarap ang Jollibee frfr</p>
+      </div>
+    </div>
+
+    <!-- Memory 5 -->
+    <div class="memory-item flex flex-col md:flex-row items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/IMG_1197.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note left">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Full Body Vibrator</h3>
+        <p class="text-gray-600">Spaceship ang atake tih</p>
+      </div>
+    </div>
+
+    <!-- Memory 6 -->
+    <div class="memory-item flex flex-col md:flex-row-reverse items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/IMG_2069.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note right">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Basang Sisiw</h3>
+        <p class="text-gray-600">First time naligo ang boang</p>
+      </div>
+    </div>
+
+    <!-- Memory 7 -->
+    <div class="memory-item flex flex-col md:flex-row items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/IMG_2874.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note left">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Maoy</h3>
+        <p class="text-gray-600">Gamaoy ang piste sa ****** piste kasapot</p>
+      </div>
+    </div>
+
+    <!-- Memory 8 -->
+    <div class="memory-item flex flex-col md:flex-row-reverse items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/IMG_3280 2.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note right">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Fir Check (unedited)</h3>
+        <p class="text-gray-600">Masarap talaga ang mga balut</p>
+      </div>
+    </div>
+
+    <!-- Memory 9 -->
+    <div class="memory-item flex flex-col md:flex-row items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/IMG_3677.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note left">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Maoy pt. 2</h3>
+        <p class="text-gray-600">CAN WE GO BACK TO THE DAYS OUR LOVE WAS STRONG?!?!?!?! ew giatay🤮</p>
+      </div>
+    </div>
+
+    <!-- Memory 10 -->
+    <div class="memory-item flex flex-col md:flex-row-reverse items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/IMG_3719.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note right">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Healthy Lifestyle</h3>
+        <p class="text-gray-600">Nag dagan dagan kay nasakitan AHAHAHHAHAHAH</p>
+      </div>
+    </div>
+
+    <!-- Memory 11 -->
+    <div class="memory-item flex flex-col md:flex-row items-center gap-8 md:gap-12">
+      <div class="flex-shrink-0">
+        <video class="memory-video" controls>
+          <source src="vids/IMG_9976.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="memory-note left">
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Kaon</h3>
+        <p class="text-gray-600">Ngaon ta dae</p>
+      </div>
+    </div>
+
+  </div>
+  </section>
+
+  <section id="letter-section" class="bg-gradient-to-b from-purple-200 to-blue-200 py-16">
+  <h2 class="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-12">To Roxane, on Your Special Day</h2>
+  <div class="max-w-md sm:max-w-lg mx-auto px-4">
+    <div class="letter-card bg-white rounded-lg shadow-lg p-6 sm:p-8 text-gray-800 text-sm sm:text-base">
+      <h3 class="text-xl sm:text-2xl font-bold mb-4">This isn’t just a birthday greeting—this is a quiet thank-you for everything you are.</h3>
+      <p>For the laughs we’ve shared, the secrets we've kept, and the strength you've shown.</p>
+      <p class="mt-2">For being there when the world felt heavy, and for staying, even when it was easier to walk away.</p>
+      <p class="mt-2">You’ve grown in ways you don’t always see, but I do. I see the fighter behind your tears, the warmth behind your kindness, and the courage in your silence.</p>
+      <p class="mt-4">On this day, I just want you to know:</p>
+      <p class="mt-4"><strong>You matter. You inspire. And you are deeply appreciated.</strong> </p>
+      <p class="mt-4"><strong>Keep shining the way only you can.</strong> </p>
+    </div>
+  </div>
+</section>
+
+
+  <!-- Cake and Candle Section -->
+  <section id="cake-section" class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-200 to-pink-200 relative">
+    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-8">Make a Wish!</h2>
+    <canvas id="confetti-canvas"></canvas>
+    <div class="relative flex flex-col items-center w-full max-w-md mt-12">
+      <div id="candle-container">
+        <div id="candle">
+          <div id="candle-stick"></div>
+          <div id="candle-flame" class="candle-flame bg-yellow-400 rounded-full"></div>
+        </div>
+      </div>
+      <div id="layer3" class="cake-layer bg-teal-200"></div>
+      <div id="layer2" class="cake-layer bg-yellow-200"></div>
+      <div id="layer1" class="cake-layer bg-pink-300"></div>
+    </div>
+    <p class="mt-4 text-gray-800 text-sm sm:text-base text-center px-4">Blow into your microphone or tap the candle to make a wish!</p>
+  </section>
+
+  <script>
+        // GSAP Animations
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Book opening, image scatter, and balloon animation on click
+    const bookCover = document.getElementById("book-cover");
+    const scatterImages = document.querySelectorAll(".scatter-image");
+    const balloons = document.querySelectorAll(".balloon");
+    let isBookAnimating = false;
+
+    bookCover.addEventListener("click", () => {
+      if (isBookAnimating) return;
+      isBookAnimating = true;
+
+      document.body.style.overflow = "hidden";
+
+      // Book cover animation
+      gsap.to("#book-cover", {
+        rotateY: -180,
+        duration: 1,
+        ease: "power2.out",
+      });
+
+      // Scatter images animation
+      scatterImages.forEach((img, index) => {
+        document.getElementById("book-section").appendChild(img);
+        gsap.to(img, {
+          x: () => Math.random() * (window.innerWidth * 0.9 - img.offsetWidth) - (window.innerWidth * 0.45),
+          y: () => Math.random() * (window.innerHeight * 0.9 - img.offsetHeight) - (window.innerHeight * 0.45),
+          rotate: () => Math.random() * 360,
+          opacity: 0.8,
+          duration: 1.2,
+          ease: "power2.out",
+          onComplete: () => {
+            if (index === scatterImages.length - 1) {
+              document.body.style.overflow = "auto";
+              isBookAnimating = false;
+            }
+          },
+        });
+      });
+
+      // Balloon animation
+      balloons.forEach((balloon, index) => {
+        if (window.innerWidth < 640 && balloon.hasAttribute('data-desktop-only')) return;
+        gsap.to(balloon, {
+          opacity: 1,
+          y: -window.innerHeight * 1.2,
+          x: () => Math.random() * 100 - 50,
+          rotate: () => Math.random() * 30 - 15,
+          duration: 3,
+          ease: "power1.out",
+          delay: index * 0.1,
+          onComplete: () => {
+            gsap.set(balloon, { opacity: 0, y: 0, x: 0, rotate: 0 });
+          },
+        });
+      });
+    });
+
+    // Memory items reveal animation
+    gsap.utils.toArray(".memory-item").forEach((item, index) => {
+      gsap.to(item, {
+        scrollTrigger: {
+          trigger: item,
+          start: "top 80%",
+          end: "bottom 20%",
+          toggleActions: "play none none reverse"
+        },
+        opacity: 1,
+        y: 0,
+        duration: 1,
+        ease: "power2.out",
+        delay: index * 0.1
+      });
+
+      // Add staggered animation for video and note within each memory
+      const video = item.querySelector('.memory-video');
+      const note = item.querySelector('.memory-note');
+      
+      gsap.set([video, note], { opacity: 0, y: 30 });
+      
+      ScrollTrigger.create({
+        trigger: item,
+        start: "top 80%",
+        onEnter: () => {
+          gsap.to(video, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" });
+          gsap.to(note, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out", delay: 0.2 });
+        },
+        onLeaveBack: () => {
+          gsap.to([video, note], { opacity: 0, y: 30, duration: 0.5, ease: "power2.in" });
+        }
+      });
+    });
+
+    gsap.to(".letter-card", {
+      scrollTrigger: {
+        trigger: ".letter-card",
+        start: "top 80%",
+        end: "bottom 20%",
+        toggleActions: "play none none reverse"
+      },
+      opacity: 1,
+      y: 0,
+      duration: 1,
+      ease: "power2.out"
+    });
+
+    // Cake layer and candle animation
+    ScrollTrigger.create({
+      trigger: "#cake-section",
+      start: "top 80%",
+      onEnter: () => {
+        gsap.to("#layer1", {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          delay: 0.5,
+          ease: "power2.out",
+        });
+        gsap.to("#layer2", {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          delay: 1,
+          ease: "power2.out",
+        });
+        gsap.to("#layer3", {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          delay: 1.5,
+          ease: "power2.out",
+        });
+        gsap.to("#candle", {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          delay: 2,
+          ease: "power2.out",
+        });
+      }
+    });
+
+    // Function to show video popup
+    function showVideoPopup() {
+      const videoPopup = document.getElementById('video-popup');
+      const video = document.getElementById('birthday-video');
+      
+      videoPopup.classList.add('show');
+      document.body.style.overflow = 'hidden';
+      
+      // Play video when popup opens
+      video.play().catch(e => console.log('Video autoplay failed:', e));
+    }
+
+    // Function to hide video popup
+    function hideVideoPopup() {
+      const videoPopup = document.getElementById('video-popup');
+      const video = document.getElementById('birthday-video');
+      
+      videoPopup.classList.remove('show');
+      document.body.style.overflow = 'auto';
+      
+      // Pause and reset video
+      video.pause();
+      video.currentTime = 0;
+    }
+
+    // Close video popup event listeners
+    document.getElementById('close-video').addEventListener('click', hideVideoPopup);
+    document.getElementById('video-popup').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        hideVideoPopup();
+      }
+    });
+
+    // ESC key to close video
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideVideoPopup();
+      }
+    });
+
+    // Confetti animation
+    function throwConfetti() {
+      const canvas = document.getElementById("confetti-canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const confettiCount = window.innerWidth < 640 ? 50 : 100;
+      const confetti = [];
+
+      for (let i = 0; i < confettiCount; i++) {
+        confetti.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          angle: Math.random() * 2 * Math.PI,
+          speed: Math.random() * 5 + 2,
+          size: Math.random() * (window.innerWidth < 640 ? 8 : 10) + 5,
+          color: `hsl(${Math.random() * 360}, 70%, 70%)`,
+          rotation: Math.random() * 360,
+        });
+      }
+
+      let animationFrame;
+      function animateConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        confetti.forEach((piece, index) => {
+          piece.x += Math.cos(piece.angle) * piece.speed;
+          piece.y += Math.sin(piece.angle) * piece.speed + 1;
+          piece.rotation += piece.speed / 10;
+          piece.speed *= 0.99;
+          if (piece.y > canvas.height + piece.size) {
+            confetti.splice(index, 1);
+          }
+
+          ctx.save();
+          ctx.translate(piece.x, piece.y);
+          ctx.rotate((piece.rotation * Math.PI) / 180);
+          ctx.fillStyle = piece.color;
+          ctx.fillRect(-piece.size / 2, -piece.size / 2, piece.size, piece.size);
+          ctx.restore();
+        });
+
+        if (confetti.length > 0) {
+          animationFrame = requestAnimationFrame(animateConfetti);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          cancelAnimationFrame(animationFrame);
+        }
+      }
+      animateConfetti();
+    }
+
+    // Microphone-based blowing detection
+    let isMicActive = false;
+    async function startBlowDetection() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        source.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        let blowDetected = false;
+        let blowStartTime = null;
+
+        function checkBlow() {
+          if (blowDetected) return;
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          let count = 0;
+          for (let i = 120; i < 140; i++) {
+            sum += dataArray[i];
+            count++;
+          }
+          const average = sum / count;
+          if (average > 80) {
+            if (!blowStartTime) {
+              blowStartTime = Date.now();
+            } else if (Date.now() - blowStartTime > 500) {
+              blowDetected = true;
+              document.getElementById("candle-flame").style.display = "none";
+              throwConfetti();
+              
+              // Show video popup after a short delay
+              setTimeout(() => {
+                showVideoPopup();
+              }, 1000);
+              
+              stream.getTracks().forEach(track => track.stop());
+              audioContext.close();
+            }
+          } else {
+            blowStartTime = null;
+          }
+          if (!blowDetected) {
+            requestAnimationFrame(checkBlow);
+          }
+        }
+        checkBlow();
+      } catch (err) {
+        console.error("Microphone access denied:", err);
+        document.getElementById("cake-section").querySelector("p").textContent = "Microphone access denied. Tap the candle to make a wish!";
+      }
+    }
+
+    // Start microphone detection when section is visible
+    const cakeSection = document.getElementById("cake-section");
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !isMicActive) {
+        isMicActive = true;
+        startBlowDetection();
+      }
+    }, { threshold: 0.5 });
+    observer.observe(cakeSection);
+
+    // Fallback: Click/tap to blow out candle
+    const candle = document.getElementById("candle");
+    candle.addEventListener("click", () => {
+      document.getElementById("candle-flame").style.display = "none";
+      throwConfetti();
+      
+      // Show video popup after a short delay
+      setTimeout(() => {
+        showVideoPopup();
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
